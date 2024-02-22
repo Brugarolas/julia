@@ -687,7 +687,7 @@ for (fJ, fC, fI) in ((:+, :add, 0), (:*, :mul, 1))
 end
 
 function -(x::BigFloat)
-    z = BigFloat()
+    z = BigFloat(; precision=_precision(x))
     ccall((:mpfr_neg, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, MPFRRoundingMode), z, x, ROUNDING_MODE[])
     return z
 end
