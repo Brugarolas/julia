@@ -2133,8 +2133,6 @@ end
 
 require(uuidkey::PkgId) = @lock require_lock _require_prelocked(uuidkey)
 
-const REPL_PKGID = PkgId(UUID("3fa0cd96-eef1-5676-8a61-b3b8758bbffb"), "REPL")
-
 function _require_prelocked(uuidkey::PkgId, env=nothing)
     if _require_world_age[] != typemax(UInt)
         Base.invoke_in_world(_require_world_age[], __require_prelocked, uuidkey, env)
@@ -2250,7 +2248,7 @@ function set_pkgorigin_version_path(pkg::PkgId, path::Union{String,Nothing})
     nothing
 end
 
-# A hook to allow code load to use Pkg.precompile
+# Unused
 const PKG_PRECOMPILE_HOOK = Ref{Function}()
 
 # Returns `nothing` or the new(ish) module
@@ -2272,7 +2270,7 @@ function _require(pkg::PkgId, env=nothing)
         end
         set_pkgorigin_version_path(pkg, path)
 
-        pkg_precompile_attempted = false # being safe to avoid getting stuck in a Pkg.precompile loop
+        parallel_precompile_attempted = false # being safe to avoid getting stuck in a precompilepkgs loop
         reasons = Dict{String,Int}()
         # attempt to load the module file via the precompile cache locations
         if JLOptions().use_compiled_modules != 0
@@ -2302,11 +2300,12 @@ function _require(pkg::PkgId, env=nothing)
 
         if JLOptions().use_compiled_modules == 1
             if !generating_output(#=incremental=#false)
-                if !pkg_precompile_attempted && isinteractive() && isassigned(PKG_PRECOMPILE_HOOK)
-                    pkg_precompile_attempted = true
+                project = active_project()
+                if !parallel_precompile_attempted && @isdefined(PrecompilePkgs) && project !== nothing && isfile(project) &&  project_file_manifest_path(project) !== nothing
+                    parallel_precompile_attempted = true
                     unlock(require_lock)
                     try
-                        @invokelatest PKG_PRECOMPILE_HOOK[](pkg.name, _from_loading = true)
+                        PrecompilePkgs.precompilepkgs([pkg.name]; _from_loading=true)
                     finally
                         lock(require_lock)
                     end
