@@ -801,6 +801,7 @@ export
     isinteractive,
     hasmethod,
     methods,
+    instancemethods,
     nameof,
     parentmodule,
     pathof,
