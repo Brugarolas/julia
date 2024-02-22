@@ -5127,6 +5127,24 @@ JL_DLLEXPORT int jl_type_morespecific_no_subtype(jl_value_t *a, jl_value_t *b)
     return type_morespecific_(a, b, a, b, 0, NULL);
 }
 
+JL_DLLEXPORT int jl_method_morespecific(jl_method_t *ma, jl_method_t *mb)
+{
+    jl_value_t *a = (jl_value_t*)ma->sig;
+    jl_value_t *b = (jl_value_t*)mb->sig;
+    if (obviously_disjoint(a, b, 1))
+        return 0;
+    if (jl_has_free_typevars(a) || jl_has_free_typevars(b))
+        return 0;
+    if (jl_subtype(b, a)) {
+        if (jl_types_equal(a, b))
+            return ma->primary_world > mb->primary_world;
+        return 0;
+    }
+    if (jl_subtype(a, b))
+        return 1;
+    return type_morespecific_(a, b, a, b, 0, NULL);
+}
+
 #ifdef __cplusplus
 }
 #endif
